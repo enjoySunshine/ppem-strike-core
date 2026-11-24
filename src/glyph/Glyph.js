@@ -148,6 +148,21 @@ export default class Glyph {
   }
 
   /**
+   * The glyph's advance width at the given point size, in design units.
+   *
+   * Outline glyphs have a single set of typographic metrics, so the size does
+   * not change them. Bitmap glyphs (e.g. SBIX) override this to report the
+   * advance of the bitmap strike the size selects, falling back to the
+   * outline when no bitmap is available.
+   *
+   * @param {number} size
+   * @return {number}
+   */
+  advanceWidthForSize(size) {
+    return this.advanceWidth;
+  }
+
+  /**
    * The glyph's advance height.
    * @type {number}
    */

@@ -77,6 +77,31 @@ export default class GlyphRun {
   }
 
   /**
+   * The total advance width of the run when rendered at the given point size,
+   * in design units.
+   *
+   * Each glyph contributes the advance of its selected representation at that
+   * size: a bitmap strike's advance for bitmap glyphs that have an image in
+   * the strike the size selects, or the outline advance otherwise. Positioning
+   * adjustments from layout (e.g. kerning) are kept, so the line width and the
+   * pixels drawn always come from the same size.
+   *
+   * @param {number} size
+   * @return {number}
+   */
+  advanceWidthForSize(size) {
+    let width = 0;
+    for (let index = 0; index < this.glyphs.length; index++) {
+      let position = this.positions[index];
+      width +=
+        this.glyphs[index].advanceWidthForSize(size) +
+        (position.xAdvance - this.glyphs[index].advanceWidth);
+    }
+
+    return width;
+  }
+
+  /**
    * The total advance height of the run.
    * @type {number}
    */

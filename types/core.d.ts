@@ -184,6 +184,13 @@ export interface GlyphRun {
   advanceWidth: number;
 
   /**
+   * The total advance width of the run when rendered at the given point size,
+   * in design units. Bitmap glyphs contribute their selected strike's advance;
+   * glyphs without a bitmap at that size contribute the outline advance.
+   */
+  advanceWidthForSize(size: number): number;
+
+  /**
    * The total advance height of the run.
    */
   advanceHeight: number;
@@ -256,6 +263,13 @@ export interface Glyph {
   /** the glyph’s advance width */
   advanceWidth: number;
 
+  /**
+   * The glyph's advance width at the given point size, in design units.
+   * Equals `advanceWidth` for outline glyphs; bitmap glyphs return the selected
+   * strike's advance, or the outline advance when no bitmap is available.
+   */
+  advanceWidthForSize(size: number): number;
+
   /** the glyph’s advance height */
   advanceHeight: number;
 
@@ -289,6 +303,20 @@ export interface Glyph {
    * or null if the glyph has no image.
    */
   getImageForSize?(size: number): SBIXImage | null;
+
+  /**
+   * For SBIX glyphs, whether the given size draws a bitmap. False when the
+   * size is above every strike or the glyph has no image, in which case the
+   * outline and its metrics are used.
+   */
+  hasBitmapAtSize?(size: number): boolean;
+
+  /**
+   * For SBIX glyphs, the metrics of the bitmap the given size selects,
+   * expressed in the font's design units, or null when the selected strike
+   * has no image for the glyph.
+   */
+  getBitmapMetricsForSize?(size: number): SBIXBitmapMetrics | null;
 }
 
 /** A bitmap image of an SBIX glyph */
@@ -298,6 +326,31 @@ export interface SBIXImage {
   /** The image format, such as `png ` */
   type: string;
   data: Uint8Array;
+}
+
+/** Metrics of an SBIX bitmap, converted to the font's design units */
+export interface SBIXBitmapMetrics {
+  /** The ppem of the sbix strike the bitmap was taken from */
+  ppem: number;
+  /** The strike's resolution, in dpi */
+  resolution: number;
+  /** The bitmap width in pixels */
+  width: number;
+  /** The bitmap height in pixels */
+  height: number;
+  /** The image origin relative to the glyph origin, in design units */
+  originX: number;
+  originY: number;
+  /** The bitmap's bounding box in design units */
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+  /** The strike's advance widths in design units */
+  advanceWidth: number;
+  advanceHeight: number;
+  /** Design units represented by one bitmap pixel in this strike */
+  unitsPerPixel: number;
 }
 
 /**

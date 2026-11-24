@@ -13,3 +13,8 @@ dist
 .env
 .env.*
 preview/out.svg
+preview/*.svg
+preview/emoji-summary.json
+
+# Offline-only test harness (the normal `npm test` builds dist via rolldown).
+tools/

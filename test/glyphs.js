@@ -277,9 +277,107 @@ describe('glyphs', function () {
       });
     });
 
+    it('should get the same image data at small and large sizes', function () {
+      // The font only ships one 300ppem strike, so both sizes resolve to it.
+      let glyph = font.glyphsForString('😜')[0];
+      let small = glyph.getImageForSize(32);
+      let large = glyph.getImageForSize(600);
+      return assert.ok(small.data.equals(large.data));
+    });
+
     it('should get the glyph name', function () {
       let glyph = font.glyphsForString('😜')[0];
       return assert.equal(glyph.name, 'stuckouttonguewinkingeye');
+    });
+
+    describe('size-specific bitmap metrics', function () {
+      let wink = font.glyphsForString('😜')[0];
+
+      it('should expose the strike and PNG dimensions of the bitmap', function () {
+        let metrics = wink.getBitmapMetricsForSize(32);
+        assert.equal(metrics.ppem, 300);
+        assert.equal(metrics.resolution, 72);
+        assert.equal(metrics.width, 301);
+        assert.equal(metrics.height, 301);
+        assert.equal(metrics.originX, 0);
+        assert.equal(metrics.originY, 0);
+        // 2048 design units per em / 300 ppem
+        assert.equal(metrics.unitsPerPixel, 2048 / 300);
+      });
+
+      it('should draw the bitmap at sizes up to the strike ppem', function () {
+        assert.equal(wink.hasBitmapAtSize(32), true);
+        assert.equal(wink.hasBitmapAtSize(300), true);
+      });
+
+      it('should fall back to the outline above the largest strike', function () {
+        // 600 is larger than the only (300ppem) strike.
+        assert.equal(wink.hasBitmapAtSize(301), false);
+        assert.equal(wink.hasBitmapAtSize(600), false);
+        assert.equal(wink.getBitmapMetricsForSize(600), null);
+      });
+
+      it('should take the advance from the bitmap tier at small sizes', function () {
+        // 301 px * (2048 / 300)
+        let expected = 301 * (2048 / 300);
+        assert.equal(wink.advanceWidthForSize(32), expected);
+        assert.notEqual(wink.advanceWidthForSize(32), wink.advanceWidth);
+      });
+
+      it('should take the advance from the outline at large sizes', function () {
+        assert.equal(wink.advanceWidthForSize(600), wink.advanceWidth);
+        assert.equal(wink.advanceWidthForSize(600), 2048);
+      });
+
+      it('should keep the size-less outline advance unchanged', function () {
+        assert.equal(font.layout('😜').advanceWidth, 2048);
+        assert.equal(wink.advanceWidth, 2048);
+      });
+
+      it('should switch a whole line of glyphs with the selected tier', function () {
+        let run = font.layout('😜');
+        let bitmapAdvance = 301 * (2048 / 300);
+        assert.equal(run.advanceWidthForSize(32), bitmapAdvance);
+        assert.equal(run.advanceWidthForSize(600), 2048);
+      });
+
+      it('should mix bitmap and outline advances within one line', function () {
+        let wink = font.glyphForCodePoint(0x1f61c);
+        let space = font.glyphForCodePoint(0x20);
+        let run = font.layout('😜 ');
+        // At 32 the wink steps by its bitmap advance, the spaceless glyph by
+        // the outline; at 600 every glyph uses the outline advance.
+        assert.equal(
+          run.advanceWidthForSize(32),
+          wink.advanceWidthForSize(32) + space.advanceWidth,
+        );
+        assert.equal(
+          run.advanceWidthForSize(600),
+          wink.advanceWidth + space.advanceWidth,
+        );
+      });
+
+      it('should derive bitmap metrics from the strike, not the outline', function () {
+        // .notdef has a 121x301 bitmap but a 1024-unit outline advance.
+        let notdef = font.getGlyph(0);
+        let metrics = notdef.getBitmapMetricsForSize(32);
+        assert.equal(metrics.width, 121);
+        assert.equal(metrics.height, 301);
+        assert.equal(notdef.advanceWidthForSize(32), 121 * (2048 / 300));
+        // Above the strike, the outline advance is used again.
+        assert.equal(notdef.advanceWidthForSize(600), 1024);
+        assert.equal(notdef.advanceWidth, 1024);
+      });
+
+      it('should fall back to the outline for a glyph with no bitmap', function () {
+        // Space is one of the three glyphs whose strike has no image.
+        let space = font.glyphForCodePoint(0x20);
+        assert.equal(space.getImageForSize(32), null);
+        assert.equal(space.hasBitmapAtSize(32), false);
+        assert.equal(space.getBitmapMetricsForSize(32), null);
+        assert.equal(space.advanceWidthForSize(32), space.advanceWidth);
+        assert.equal(space.advanceWidthForSize(600), space.advanceWidth);
+      });
     });
   });
 

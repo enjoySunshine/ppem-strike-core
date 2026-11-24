@@ -9,6 +9,18 @@ describe('glyph positioning', function () {
 
     it('should get a glyph width', () =>
       assert.equal(font.getGlyph(5).advanceWidth, 615));
+
+    it('should keep the outline advance at every size for outline glyphs', () => {
+      let glyph = font.getGlyph(5);
+      assert.equal(glyph.advanceWidthForSize(32), glyph.advanceWidth);
+      assert.equal(glyph.advanceWidthForSize(600), glyph.advanceWidth);
+    });
+
+    it('should preserve positioning adjustments in the size-specific run width', () => {
+      let run = font.layout('Twitter');
+      assert.equal(run.advanceWidthForSize(32), run.advanceWidth);
+      assert.equal(run.advanceWidthForSize(600), run.advanceWidth);
+    });
   });
 
   describe('opentype positioning', function () {
